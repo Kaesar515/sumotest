@@ -19,6 +19,7 @@ public class Statistik {
         double stepLength = 0.1;
 
         try {
+            // SUMO starten
             Process sumoProcess = new ProcessBuilder(
                     sumoPath,
                     "-c", sumoConfig,
@@ -29,7 +30,7 @@ public class Statistik {
             // Kurze Pause, damit SUMO hochfahren kann
             Thread.sleep(2000);
 
-            // TraaS-Verbindung aufbauen
+            // TraCI-Verbindung aufbauen
             SumoTraciConnection conn = new SumoTraciConnection(port);
             conn.addOption("step-length", String.valueOf(stepLength));
             conn.runServer();
@@ -37,56 +38,65 @@ public class Statistik {
             // Map für Travel Time Tracking
             Map<String, Double> vehicleDepartureTimes = new HashMap<>();
 
-            // Simulationsschritt
-            conn.do_timestep();
+            // Simulation so lange laufen lassen, bis keine Fahrzeuge mehr erwartet werden
+            while ((int) conn.do_job_get(Simulation.getMinExpectedNumber()) > 0) {
 
-            // 1. Durchschnittsgeschwindigkeit global in der gesamten Simulation
-            List<String> vehicleIDs = (List<String>) conn.do_job_get(Vehicle.getIDList());
-            double totalSpeed = 0;
-            for (String vehID : vehicleIDs) {
-                double speed = (double) conn.do_job_get(Vehicle.getSpeed(vehID));
-                totalSpeed += speed;
-                vehicleDepartureTimes.putIfAbsent(vehID, (double) conn.do_job_get(Simulation.getTime()));
-            }
-            double averageSpeed = vehicleIDs.isEmpty() ? 0 : totalSpeed / vehicleIDs.size();
-            System.out.println("Average speed: " + averageSpeed);
+                // Einen Zeitschritt ausführen
+                conn.do_timestep();
 
-            // 2. Fahrzeugdichte lokal auf der jeweiligen Edge
-            List<String> edgeIDs = (List<String>) conn.do_job_get(Edge.getIDList());
-            for (String edgeID : edgeIDs) {
-                int numVehicles = (int) conn.do_job_get(Edge.getLastStepVehicleNumber(edgeID)); // Returns the number of vehicles currently on the edge
-                System.out.println("Edge " + edgeID + " - Vehicles: " + numVehicles);
-            }
-
-            // 3. Verstopfung lokal (Geschwindigkeit weniger als 2.0)
-            for (String edgeID : edgeIDs) {
-                double edgeSpeed = (double) conn.do_job_get(Edge.getLastStepMeanSpeed(edgeID)); // Returns mean speed on the edge (sum of all lanes)
-                if (edgeSpeed < 2.0) {
-                    System.out.println("Congestion detected on edge " + edgeID);
+                // 1. Durchschnittsgeschwindigkeit global in der gesamten Simulation
+                List<String> vehicleIDs = (List<String>) conn.do_job_get(Vehicle.getIDList());
+                double totalSpeed = 0;
+                for (String vehID : vehicleIDs) {
+                    double speed = (double) conn.do_job_get(Vehicle.getSpeed(vehID));
+                    totalSpeed += speed;
+                    // Abfahrtszeit merken (falls neu)
+                    vehicleDepartureTimes.putIfAbsent(vehID, (double) conn.do_job_get(Simulation.getTime()));
                 }
-            }
+                double averageSpeed = vehicleIDs.isEmpty() ? 0 : totalSpeed / vehicleIDs.size();
+                System.out.println("Average speed: " + averageSpeed);
 
-            // 4. Reisezeit pro Vehicle (Vehicle Zeit = Gesamtzeit - Zeit seit Injection)
-            vehicleDepartureTimes.keySet().removeIf(vehID -> {
-                if (!vehicleIDs.contains(vehID)) {
-                    double arrivalTime = 0;
-                    try {
-                        arrivalTime = (double) conn.do_job_get(Simulation.getTime());
-                    } catch (Exception e) {
-                        throw new RuntimeException(e);
+                // 2. Fahrzeugdichte pro Kante
+                List<String> edgeIDs = (List<String>) conn.do_job_get(Edge.getIDList());
+                for (String edgeID : edgeIDs) {
+                    int numVehicles = (int) conn.do_job_get(Edge.getLastStepVehicleNumber(edgeID));
+                    System.out.println("Edge " + edgeID + " - Vehicles: " + numVehicles);
+                }
+
+                // 3. Stau-Erkennung (Hotspots) ab Geschwindigkeit weniger als 2.0
+                for (String edgeID : edgeIDs) {
+                    double edgeSpeed = (double) conn.do_job_get(Edge.getLastStepMeanSpeed(edgeID));
+                    if (edgeSpeed < 2.0) {
+                        System.out.println("Congestion detected on edge " + edgeID);
                     }
-                    double travelTime = arrivalTime - vehicleDepartureTimes.get(vehID);
-                    System.out.println("Vehicle " + vehID + " travel time: " + travelTime + " s");
-                    return true;
                 }
-                return false;
-            });
+
+                // 4. Reisezeiten (wenn Fahrzeuge verschwinden)
+                vehicleDepartureTimes.keySet().removeIf(vehID -> {
+                    if (!vehicleIDs.contains(vehID)) {
+                        try {
+                            double arrivalTime = (double) conn.do_job_get(Simulation.getTime());
+                            double travelTime = arrivalTime - vehicleDepartureTimes.get(vehID);
+                            System.out.println("Vehicle " + vehID + " travel time: " + travelTime + " s");
+                            return true;
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+                    return false;
+                });
+
+                // Kurze Pause für GUI-Update
+                Thread.sleep(50);
+            }
 
             // Verbindung schließen
             conn.close();
 
-            // SUMO Prozess beenden
+            // SUMO beenden
             sumoProcess.destroy();
+
+            System.out.println("Simulation abgeschlossen.");
 
         } catch (IOException | InterruptedException e) {
             e.printStackTrace();
