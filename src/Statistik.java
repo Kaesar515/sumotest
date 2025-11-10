@@ -59,6 +59,7 @@ public class Statistik {
                 // 2. Fahrzeugdichte pro Kante
                 List<String> edgeIDs = (List<String>) conn.do_job_get(Edge.getIDList()); //Liste aller Kanten-IDs (Edges) der Netzwerktopologie
                 for (String edgeID : edgeIDs) {
+                    if (edgeID.startsWith(":")) continue; // interne Kanten (starten mit ":") werden übersprungen
                     int numVehicles = (int) conn.do_job_get(Edge.getLastStepVehicleNumber(edgeID)); //liefert Anzahl Fahrzeuge, die auf dieser Kante im letzten Zeitschritt gemessen wurden cast (int)
                     System.out.println("Edge " + edgeID + " - Vehicles: " + numVehicles); // Ausgabe Anzahl Fahrzeuge je Kante
                 }
