@@ -70,7 +70,7 @@ public class Statistik {
                     }
                     return false;
                 });
-                
+
             }
 
             // Verbindung schließen, Socket schließen etc.

@@ -40,7 +40,7 @@ public class GUI2 {
         JButton button = new JButton("Inject Car");
         button.setFocusable(false); //Removes little box around the text.
         button.setToolTipText("Inject a new Car into the Sumo Simulation"); //Text apperaring, if you hover over the Button.
-        ImageIcon carIcon = new ImageIcon("proxy-image.png"); //creating an instance from Class ImageIcon, to create an Icon for the Button.
+        ImageIcon carIcon = new ImageIcon("data/proxy-image.png"); //creating an instance from Class ImageIcon, to create an Icon for the Button.
         button.setIcon(carIcon); //Set the Icon on the button
         button.addActionListener(new ActionListener() {
             @Override
@@ -64,7 +64,7 @@ public class GUI2 {
         JButton button2 = new JButton("Start Sumo GUI");
         button2.setFocusable(false); //Removes little box around the text.
         button2.setToolTipText("Start the Sumo Gui"); //Text apperaring, if you hover over the Button.
-        ImageIcon sumoIcon = new ImageIcon("proxy-image2.png"); //creating an instance from Class ImageIcon, to create an Icon for the Button.
+        ImageIcon sumoIcon = new ImageIcon("data/proxy-image2.png"); //creating an instance from Class ImageIcon, to create an Icon for the Button.
         button2.setIcon(sumoIcon); //Set the Icon on the button
 //        button.addActionListener(new ActionListener() {
 //            @Override
