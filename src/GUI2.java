@@ -7,7 +7,7 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
-import static SumoTest.GUI.conn;
+import static SumoTest.TraciConnect.conn;
 
 
 public class GUI2 {

@@ -1,4 +1,5 @@
-import it.polito.appeal.traci.SumoTraciConnection;
+package SumoTest;
+
 import de.tudresden.sumo.cmd.Vehicle;
 import de.tudresden.sumo.cmd.Edge;
 import de.tudresden.sumo.cmd.Simulation;
@@ -8,32 +9,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static SumoTest.TraciConnect.conn;
 public class Statistik {
 
     public static void main(String[] args) {
 
-        // Pfade zu SUMO GUI und Circles-Konfiguration
-        String sumoPath = "C:\\Program Files (x86)\\Eclipse\\Sumo\\bin\\sumo-gui.exe";
-        String sumoConfig = "C:\\Program Files (x86)\\Eclipse\\Sumo\\doc\\tutorial\\circles\\data\\circles.sumocfg";
-        int port = 8873;      // TraCI Port (TCP)
-        double stepLength = 0.1; //Simulations-Zeitschrittlänge 0.1s
-
         try {
-            // SUMO starten
-            Process sumoProcess = new ProcessBuilder(
-                    sumoPath,
-                    "-c", sumoConfig,
-                    "--remote-port", String.valueOf(port)
-            ).inheritIO() // Ausgabe in Konsole sichtbar
-                    .start();
+            // zuvereandern
+            TraciConnect.getConn();
 
-            // Kurze Pause, damit SUMO hochfahren kann (2000ms = 2s)
-            Thread.sleep(2000);
-
-            // TraCI-Verbindung aufbauen
-            SumoTraciConnection conn = new SumoTraciConnection(port);
-            conn.addOption("step-length", String.valueOf(stepLength)); //übergibt Staroption (hier Schrittweite)
-            conn.runServer(); //verbindet Socket zum SUMO-Server
 
             // Hashmap für Abfahrtszeiten (speichert pro Fahrzeug-ID <string> die Zeit <double> -> um Reisezeit zu berechnen
             Map<String, Double> vehicleDepartureTimes = new HashMap<>();
@@ -86,16 +70,12 @@ public class Statistik {
                     }
                     return false;
                 });
-
-                // Kurze Pause für GUI-Update (beeinflusst nicht Simulationszeit, sondern Polling-Frequenz des Java-Clients
-                Thread.sleep(50);
+                
             }
 
             // Verbindung schließen, Socket schließen etc.
             conn.close();
 
-            // SUMO beenden
-            sumoProcess.destroy();
 
             System.out.println("Simulation abgeschlossen.");
 
